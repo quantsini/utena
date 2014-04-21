@@ -1,3 +1,6 @@
+// copied from https://www.assembla.com/code/transprojects/subversion/nodes/302/saturn/revolutionary_girl_utena/tools/code/utena_extract.cpp
+//
+//
 #include <iostream>
 #include <fstream>
 
