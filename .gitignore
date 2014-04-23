@@ -2,3 +2,5 @@
 *.swp
 *.py[oc]
 venv
+original_game_files/
+.DS_Store

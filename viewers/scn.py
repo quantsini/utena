@@ -1,25 +1,9 @@
 # -*- coding: utf-8 -*-
 import io
-from collections import namedtuple
-from struct import Struct
+from util.structs import makes_header_struct
 
 
-def makes_header(name, byte_order='@', *name_format_tuples):
-    """Factory method for creating header types"""
-    names, formats = zip(*name_format_tuples)
-    class _Header(namedtuple('_Header', ' '.join(names))):
-        header_format = Struct('<' + ''.join(formats))
-        @classmethod
-        def from_buffer(cls, buff, start=0):
-            buff.seek(start)
-            data = buff.read(cls.header_format.size)
-            header_data = cls.header_format.unpack_from(data)
-            return cls._make(header_data)
-    _Header.__name__ = name
-    return _Header
-
-
-SceneHeader = makes_header('SceneHeader', '<',
+SceneHeader = makes_header_struct('SceneHeader', '<',
                            ('file_type', '4s'),
                            ('file_size', 'I'),
                            ('start_data', 'H'),
@@ -27,7 +11,7 @@ SceneHeader = makes_header('SceneHeader', '<',
                            ('unk1', 'H'))
 
 
-TextHeader = makes_header('TextHeader', '<',
+TextHeader = makes_header_struct('TextHeader', '<',
                           ('ptr_beg_1', 'B'),
                           ('diag_ptr', 'H'),
                           ('ptr_end_1', 'H'),
@@ -43,19 +27,16 @@ TextHeader = makes_header('TextHeader', '<',
                           ('zero', 'B'))
 
 
-# Need to somehow compute this value
-pointer_block_start = 7807
-
-
 class Scene:
 
-    def __init__(self, buff, header):
+    def __init__(self, buff, header, pointer_block_start):
         self._header = header
         self._buff = buff
+        self._pointer_block_start = pointer_block_start
 
     @property
     def texts(self):
-        for offset in range(pointer_block_start, self._header.start_script, TextHeader.header_format.size):
+        for offset in range(self._pointer_block_start, self._header.start_script, TextHeader.header_format.size):
             current_header = TextHeader.from_buffer(self._buff, offset)
             next_offset = offset + TextHeader.header_format.size
             if next_offset < self._header.start_script:
@@ -76,28 +57,21 @@ class Text:
     @property
     def data(self):
         self._buff.seek(self._header.tag_ptr)
-        data = self._buff.read(self._size)
-        data = data.replace(b'\x0e', b'\n')
-        return data.decode('shiftjis')
+        return self._buff.read(self._size)
 
-    @property
-    def voice_track(self):
-        voice_track, _, _ = self.data.split('\x00')
-        return voice_track
 
-    @property
-    def dialog(self):
-        _, dialog, _ = self.data.split('\x00')
-        return dialog
+if __name__ == '__main__':
+    file = 'original_game_files/Utena_Sega1/SCNBIN/DAY_A0.SCN'
+    file = 'original_game_files/Utena_Sega1/SCNBIN/DAY_A1.SCN'
 
-file = 'DAY_A0.SCN'
-file = 'DAY_D2.SCN'
+    # Need to somehow compute this value
+    pointer_block_start = 7807
 
-f = io.open(file, 'rb')
+    with io.open(file, 'rb') as f:
+        header = SceneHeader.from_buffer(f)
 
-header = SceneHeader.from_buffer(f)
-scene = Scene(f, header)
+        scene = Scene(f, header, pointer_block_start)
 
-for text in scene.texts:
-    print(text._header)
-    print(repr(text.data))
+        for text in scene.texts:
+            print(text._header)
+            print(repr(text.data.decode('shiftjis')))
