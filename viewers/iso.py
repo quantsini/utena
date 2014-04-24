@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import io
 import struct
+from pprint import pprint
 from util.structs import makes_header_struct
-from sh2 import instruction_schema_repository
+from sh2 import opcodes
 
 
 IPStruct = makes_header_struct('IPStruct', '<',
@@ -35,12 +36,10 @@ if __name__ == '__main__':
 
     with io.open(file, 'rb') as f:
         ip_struct = IPStruct.from_buffer(f)
-        print(ip_struct)
+        pprint(ip_struct)
         f.seek(ip_struct.first_read_address)
-        for _ in range(ip_struct.first_read_size, 2):
+        for _ in range(int(ip_struct.first_read_size/2)):
             opcode = f.read(2)
-            instruction = struct.unpack('<H', opcode)[0]
-
-            instruction_schema = instruction_schema_repository.match_for_instruction(instruction)
-
-            print(instruction_schema)
+            raw_instruction = struct.unpack('<H', opcode)[0]
+            instruction = opcodes.lookup(raw_instruction)
+            print(instruction)

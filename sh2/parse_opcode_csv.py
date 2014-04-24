@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import csv
 
-from sh2.opcodes import build_instruction_schema
+from sh2.instruction_schema import build_instruction_schema
 
 
 def load_from_csv(file):
