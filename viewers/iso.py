@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import io
+import struct
 from util.structs import makes_header_struct
+from sh2 import instruction_schema_repository
 
 
 IPStruct = makes_header_struct('IPStruct', '<',
@@ -25,10 +27,20 @@ IPStruct = makes_header_struct('IPStruct', '<',
    ('reserved4', 'L'))
 
 
+class UnknownOpcode(Exception): pass
+
+
 if __name__ == '__main__':
     file = 'original_game_files/Utena_Sega1.iso'
 
     with io.open(file, 'rb') as f:
         ip_struct = IPStruct.from_buffer(f)
+        print(ip_struct)
+        f.seek(ip_struct.first_read_address)
+        for _ in range(ip_struct.first_read_size, 2):
+            opcode = f.read(2)
+            instruction = struct.unpack('<H', opcode)[0]
 
-        # TODO: write sh2 interpreter
+            instruction_schema = instruction_schema_repository.match_for_instruction(instruction)
+
+            print(instruction_schema)
